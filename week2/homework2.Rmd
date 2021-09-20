@@ -1,0 +1,64 @@
+---
+title: "Homework2"
+author: "Anders Hjulmand"
+date: "9/8/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Question 3
+
+```{r}
+pacman::p_load("tidyverse", "phonics")
+```
+
+```{r}
+df <- read_csv("https://raw.githubusercontent.com/aarhusstadsarkiv/datasets/master/censuses/1801/census-1801-normalized.csv")
+```
+
+
+```{r}
+df_ugift <- df %>% 
+  #filtering ugifte 
+  filter(civilstand == "ugift") %>% 
+  #removing na's
+  drop_na(erhverv) %>% 
+  mutate(
+    erhverv = as.character(erhverv),
+    #removing spaces
+    erhverv = str_replace_all(erhverv, " ", ""),
+    #adding a coloumn with cologne-phonetic values for "erhverv"
+    cologne_value = cologne(erhverv),
+  )
+
+
+```
+
+
+
+
+```{r}
+df_ugift %>% 
+  drop_na(cologne_value) %>% 
+  group_by(cologne_value) %>% 
+  summarize(
+            frequency = length(cologne_value),
+            erhverv = unique(erhverv)) %>% 
+  arrange(desc(frequency))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+

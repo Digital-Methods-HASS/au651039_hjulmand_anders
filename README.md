@@ -1,0 +1,2 @@
+# Cultural Data Science
+This repository contains homework assignments for the course Introduction to Cultural Data Science. Each week has its own directory. In this directory you will find several files related to the homework, e.g. a rapport in pdf-format and a R-markdown file. Have fun!
