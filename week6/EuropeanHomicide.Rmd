@@ -1,16 +1,22 @@
 ---
 title: "Are we more civilized today?"
-author: "Adela Sobotkova"
-date: " created 4 October 2021, updated ..."
-output: html_document
+author: "Anders Hjulmand"
+date: " created 4 October 2021, updated `r format(Sys.time(), '%d %B, %Y')`"
+output:
+   html_document:
+     toc: true
+     toc_depth: 3
+     toc_float: true
+     theme: spacelab
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-This exercise is based on the dataset provided by [OurWorldInData project](https://ourworldindata.org/homicides) based at the Oxford University.
+This exercise is based on the dataset provided by [OurWorldInDatahttps://ourworldindata.org/homicides project](https://ourworldindata.org/homicides) based at the Oxford University.
 
-## The long-term trend in Homicides in Western Europe
+## Adeles Work
+### The long-term trend in Homicides in Western Europe
 
 Understanding how homicide rates have changed prior to the modern era requires the help of historians and archivists. Manuel Eisner, a criminology professor at the University of Cambridge, and his colleagues published the Historical Violence Database \href{https://cjrc.osu.edu/research/interdisciplinary/hvd}: a compilation of data on long-term trends in homicide rates, in addition to qualitative information such as the cause of death, perpetrator and victim. This database is limited to countries with relatively complete historical records on violence and crime – mainly Western Europe and the US.
 
@@ -24,35 +30,39 @@ In the 1300s, homicide rates in Western Europe ranged from 23 to 56 homicides pe
 
 Homicide rates in Europe today are much lower than in the past. England, Germany, Switzerland, and Italy reached their lowest levels in the 2000s; while the Netherlands, Belgium, and Scandinavia reached their minimums in the mid to late 1900s.
 
-```{r}
-library(tidyverse)
+```{r loading package}
+pacman::p_load(tidyverse)
 ```
 
-## Load the available data from ourworldindata.org
+### Load the available data from ourworldindata.org
 
 You should always interrogate the source of your data. Who compiled it, from where, what is missing, how representative the data are? Check the data/Metadata document to learn about the data provenance.
 
-```{r}
-Western_Europe <- read_csv("data/homicide-rates-across-western-europe.csv")
+```{r loading data, message = F}
+#reading the data and renaming the coloumn about homocide
+Western_Europe <- read_csv("data/homicide-rates-across-western-europe.csv") %>% 
+  rename(homocides = 'Homicide rate in Europe over long-term (per 100,000) (homicides per 100,000 people)')
+  
 ```
 
-## Inspect the data
+### Inspect the data
 
 How clean and analysis-ready is the dataset? Do you understand what the column names represent? What is the difference between rate and homicide number?
 
-```{r}
-head(Western_Europe)
+```{r inspecting data}
+head(Western_Europe) %>% 
+   knitr::kable(caption = "Head of dataset")
 ```
 
 Note that the `echo = FALSE` parameter can be added to the code chunk to prevent printing of the R code that generated the plot.
 
 Now, that you have looked at what the data looks like and what it represents, let's see what big picture it contains.
 
-## Let's see what the long-term trend is
-```{r}
+### Let's see what the long-term trend is
+```{r scatterplot}
 ggplot(data = Western_Europe) + 
   geom_point(mapping = aes(x = Year, 
-                           y = Western_Europe$`Homicide rate in Europe over long-term (per 100,000) (homicides per 100,000 people)`, 
+                           y = homocides, 
                            color = Entity)) +
   labs(x = "Year",
        y = "Number of Homicides per 100,000 people",
@@ -60,12 +70,12 @@ ggplot(data = Western_Europe) +
 ```
 Alright, the homicide rates are all descending over time. What a comfort. But the viz is not super clear. Let's check the rates for individual countries.
 
-## Let's uncouple for easier view of individual countries
+### Let's uncouple for easier view of individual countries
 
-```{r}
+```{r scatterplot with facet}
 ggplot(data = Western_Europe) + 
   geom_point(mapping = aes(x = Year, 
-                           y = Western_Europe$`Homicide rate in Europe over long-term (per 100,000) (homicides per 100,000 people)`, 
+                           y = homocides, 
                            color = Entity)) +
   facet_wrap(~ Entity, nrow = 3) +
   labs(x = "Year",
@@ -75,15 +85,76 @@ ggplot(data = Western_Europe) +
 ```
 
 
-**Your Tasks:**
+## Your tasks
 
-1) the column name Western_Europe$`Homicide rate in Europe over long-term (per 100,000) is not very easy to work with. Relabel it to 'homicides' for easier use in the ggplots.
+### 1) 
+*the column name Western_Europe$`Homicide rate in Europe over long-term (per 100,000) is not very easy to work with. Relabel it to 'homicides' for easier use in the ggplots.'*
+I did that when loading the data.
 
-2) The facet is great, but geom_point(scatterplot) is not the best choice for showing long-term data. Can you create other type of visualisation for a long-term trend? 
 
-3) Can you change the facet layout to two columns and three rows so that the trends are more visible? 
+### 2)
+*The facet is great, but geom_point(scatterplot) is not the best choice for showing long-term data. Can you create other type of visualisation for a long-term trend?* 
+I created two vizualisations using `geom_smooth` with the method `loess` and `lm`. lm just makes a straight line whereas loess allows the regression line to move and bend. I think the loess method is better at capturing the trends in the data compared to using the lm method, which just makes a straight line. E.g. using the loess moethod we can see that the development of homocides in Italy is quite different from the other countries. 
+```{r line plots using loess and lm}
+#using loess method
+Western_Europe %>% 
+  ggplot() +
+  aes(Year, homocides, color = Entity) +
+  geom_smooth(method = "loess") + 
+  facet_wrap(~Entity, nrow = 3) +
+  labs(x = "Year",
+       y = "Homicides per 100,000",
+       title = "Homicide rate in Western Europe from 1300-2000",
+       subtitle = "Using loess method") +
+  theme(legend.position="none")
 
-4) Move the legend from the current position on the side to below the facets, and label it "Country" instead of "Entity".
+#using lm method
+Western_Europe %>% 
+  ggplot() +
+  aes(Year, homocides, color = Entity) +
+  geom_smooth(method = "lm") + 
+  facet_wrap(~Entity, nrow = 3) +
+  labs(x = "Year",
+       y = "Homicides per 100,000",
+       title = "Homicide rate in Western Europe from 1300-2000",
+       subtitle = "Using lm method") +
+  theme(legend.position="none")
+```
 
-5) Add a floating table of contents to your Rmarkdown document, provide informative chunk-names to all your R chunks, and automatically generate a timestamp to show when the document was last updated. 
+### 3)
+*Can you change the facet layout to two columns and three rows so that the trends are more visible? *
+Hmm, i think this was already done to begin with. Or maybe i misunderstand something. But i will make the plot more readable, by changing the `fig.height` in the markdown.
+```{r line plots using loess and lm 2, fig.height = 6}
+Western_Europe %>% 
+  ggplot() +
+  aes(Year, homocides, color = Entity) +
+  geom_smooth(method = "loess") + 
+  facet_wrap(~Entity, nrow = 3) +
+  labs(x = "Year",
+       y = "Homicides per 100,000",
+       title = "Homicide rate in Western Europe from 1300-2000",
+       subtitle = "Using loess method") +
+  theme(legend.position="none")
+```
+
+### 4)
+*Move the legend from the current position on the side to below the facets, and label it "Country" instead of "Entity".*
+I think the legend is overkill since it doesnt provide any new information. By using `facet_wrap` we already see what plot correponds to what entity. Thus, the legend only takes up space. But here it is anyway. Less ugly but still overkill. 
+```{r change legend position, fig.height = 6}
+Western_Europe %>% 
+  ggplot() +
+  aes(Year, homocides, color = Entity) +
+  geom_smooth(method = "loess") + 
+  facet_wrap(~Entity, nrow = 3) +
+  labs(x = "Year",
+       y = "Homicides per 100,000",
+       title = "Homicide rate in Western Europe from 1300-2000",
+       subtitle = "Using loess method") +
+  theme(legend.position="bottom")
+  
+```
+
+### 5)
+*Add a floating table of contents to your Rmarkdown document, provide informative chunk-names to all your R chunks, and automatically generate a timestamp to show when the document was last updated.* 
+yeye.
 
