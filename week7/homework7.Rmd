@@ -1,0 +1,160 @@
+---
+title: "Homework 7"
+author: "Anders Hjulmand"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  bookdown::html_document2:
+   toc: yes
+   toc_float: yes
+   theme: yeti
+   fig_caption: yes
+   number_sections: false
+---
+
+# Loading Packages and Gapminder Data
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+First things first, we load packages and take a look at the data.
+
+```{r}
+#loading packages
+pacman::p_load(tidyverse, gapminder, DT)
+```
+
+```{r}
+#loading data and cleaning a lil bit (not alot baby girl just a lil bit)
+df <- as_tibble(gapminder) %>% 
+  mutate(
+    year = as.factor(year),
+    country = as.character(country)
+  )
+
+#showing the dataframe in a nice format where it is easy to browse through
+font.size <- "8pt"
+DT::datatable(
+ df,
+ rownames = FALSE,
+ filter = "top", 
+ options = list(
+  initComplete = htmlwidgets::JS(
+   "function(settings, json) {",
+   paste0("$(this.api().table().container()).css({'font-size': '", font.size, "'});"),
+   "}"),
+  pagelength = 3,
+  scrollX=T,
+  autoWidth = TRUE
+       ) 
+     )
+```
+
+# Task 1
+*Define a defensive function that calculates the Gross Domestic Product of a nation from the data available in the gapminder dataset. You can use the population and GDPpercapita columns for it. Using that function, calculate the GDP of Denmark in the following years: 1967, 1977, 1987, 1997, 2007, and 2017*
+
+As far as i can tell 2017 is not present in the gapminder dataset for Denmark.The function below called `GDP` takes two arguments `dataframe` and `Country` and it returns a dataframe containing rows for the specified country and years. It has all the existing coloumns and a new column is added called `GDP` which is the Gross Domestic Product for that given year in that given couyntry (See table \@ref(tab:yeyetable)). 
+```{r}
+#First up, we make a list of the selected years. 
+select_years <- c(1967, 1977, 1987, 1997, 2007)
+
+#defining function GDP
+GDP <- function(dataframe, Country) {
+  #filtering the country and the specified years
+  dataframe <- dataframe %>% 
+    filter(country == Country) %>% 
+    filter(year %in% select_years)
+  #looping over each year (row), calculating GDP and appending the result to a new column in the dataframe           
+  for (i in 1:length(dataframe$year)) {
+    dataframe$GDP <- dataframe$pop*dataframe$gdpPercap
+    }
+  return(dataframe)
+}
+
+```
+
+```{r yeyetable}
+#Running the function
+yeye <- GDP(df, "Denmark")
+
+#using the knitr package to make a nice table
+yeye %>% 
+  knitr::kable(caption = "The GDP of Denmark in the specified years",
+               col.names = c("Country", "Continent", "Year", "Life Expentancy", "Population", "GDP per capita", "GDP"))
+
+```
+
+
+
+# Task 2
+*Write a script that loops over each country in the gapminder dataset, tests whether the country starts with a ‘B’ , and prints out whether the life expectancy is smaller than 50, between 50 and 70, or greater than 70. (Hint: remember the grepl functions, and review the Control Flow tutorial)*
+
+Okay this next chunk is not the most readable until you wrap your head around nested if-else statements. 
+`ifelse` has a syntax like this: `ifelse(statement, x, y)`. If the statement is true it returns the value of `x` and if the statement is false it returns the value of `y`. The code contains 3 if-else statements that are nested. The first `ifelse` checks whether the country starts with "B". The second `ifelse` is nested within the first and checks whether the life expectancy of the country is smaller than 50. The third `ifelse` is nested within the second and checks whether the life expectancy if greater than 70 or between 50 and 70. For each of these `ifelse`, a string is appended to the dataframe in the new column called `Task2`.   
+
+```{r}
+#Nesting 3 ifelse loops
+df$Task2 <- 
+  ifelse(str_sub(df$country, 1, 1) == "B", 
+    ifelse(df$lifeExp < 50, "Smaller than 50",
+           ifelse(df$lifeExp > 70, "Greater than 70", "Between 50 and 70")),
+    "First letter of Country is not B")
+```
+
+```{r}
+#Making a table where the viewer can browse
+DT::datatable(
+     #filtering the relevant columns
+     df %>% select("country", "lifeExp", "Task2"),
+     rownames = FALSE,
+     filter = "top", 
+     options = list(
+       initComplete = htmlwidgets::JS(
+          "function(settings, json) {",
+          paste0("$(this.api().table().container()).css({'font-size': '", font.size, "'});"),
+          "}"),
+       pagelength = 3,
+       scrollX=T,
+       autoWidth = TRUE
+       ) 
+     )
+```
+
+All righti. Now we can see the new column `Task2` is added and it has the information we need. 
+
+# Task 3  
+*Challenge/Optional: Write a script that loops over each country in the gapminder dataset, tests whether the country starts with a ‘M’ and graphs life expectancy against time (using plot() function) as a line graph if the mean life expectancy is under 50 years.*
+
+First up I make a table to find all the countries with a mean life expectancy under 50 years. `tidyverse` has a nice way of doing this using `group_by` and `summarize`. Table \@ref(tab:meanlifeExp) shows the result of this workflow.  
+
+```{r meanlifeExp, message = F}
+#Finding the countries that have a mean life expectancy under 50 years
+mean_lifeExp <- df %>% 
+  group_by(country) %>% 
+  summarize(mean = mean(lifeExp)) %>% 
+  filter(mean <50)
+
+mean_lifeExp %>% 
+  knitr::kable(caption = "Countries with a mean life expectancy under 50 years",
+               col.names = c("Country", "Mean life expectancy"))
+```
+
+Now that we know all the countries with a mean life expectancy under 50 years it is time to plot. In the next chunk i use a function from the library `stringr` which is already included in `tidyverse` to filter countries that start with "M". Then I filter countries that have a mean life expectancy under 50 years, and finally i plot each country separately using `facet_wrap`. See figure \@ref(fig:task3plot).  
+
+```{r task3plot, message = F, fig.height = 6, fig.width = 8, fig.cap = "Life expectancy of countries that start with M and have a mean life expectancy under 50 years"}
+#Now it is time to make some plots
+df %>% 
+  #filter all countries that start with M using the str_sub from the stringr package, which is already included      in tidyverse
+  filter(str_sub(country, 1, 1) == "M") %>% 
+  #filter countries with a mean life expectancy under 50 years
+  filter(country %in% mean_lifeExp$country) %>% 
+  ggplot() + 
+  aes(as.numeric(as.character(year)), lifeExp, color = country) +
+  geom_point() + 
+  geom_smooth(method = "lm") +
+  facet_wrap(~country) +  
+  labs(x = "Year",
+       y = "Life Expectancy") +
+  theme(legend.position="none")
+```
+
+
+**Over and out**
