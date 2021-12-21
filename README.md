@@ -5,5 +5,5 @@ This repository contains homework assignments for the course Introduction to Cul
 ## How to Open the Files
 
 * For week 2, 3 and 4 the assignment is in pdf-format and can be opened directly on GitHub.
-* For week 5, 6 and 7 the assignment is in html-format. To open one of these assingments simply go to the file on GitHub. Then go to the webpage https://htmlpreview.github.io/ and paste the URL.
+* For week 5, 6 and 7 the assignment is in html-format. To open one of these assingments simply go to the file on GitHub and copy the URL. Then go to the webpage https://htmlpreview.github.io/ and paste the URL.
 
